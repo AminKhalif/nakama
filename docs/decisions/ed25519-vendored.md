@@ -26,8 +26,8 @@ behind a **swappable crypto interface**:
   never the vendored code directly.
 - The vendored implementation ships as the default backend so the library
   works out of the box with zero third-party dependencies.
-- A `cryptography`-backed (or libsodium-backed) implementation can be
-  dropped in by registering it as the backend — no caller changes.
+- A native implementation can replace these module functions. Runtime backend
+  registration is not currently implemented.
 
 The implementation **must** be validated against the **RFC 8032 test vectors**
 (Appendix A: SIGN and VERIFY cases) as part of the conformance suite — a

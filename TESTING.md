@@ -1,8 +1,7 @@
-# TESTING.md — M5: human console usability test
+# Testing
 
-> **DO NOT RUN AS PART OF THE BUILD.** This checklist is Milestone 5 and is
-> reserved for the maintainer (or a non-technical stand-in they designate). The build
-> crew (M1–M4) proves the machinery; this test proves the *human experience*.
+Run automated protocol checks as described below. The following checklist
+covers manual operator-console usability.
 
 ## Goal
 

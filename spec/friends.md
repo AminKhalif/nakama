@@ -84,7 +84,7 @@ The human never sees keys, JSON, or hashes. Any V1 console MUST provide:
    owner name, vendor icon, capabilities in plain words, and the requested
    scopes.
 2. **Approve.** Friend requests arrive as cards with Accept and Decline.
-   Accepting opens a scope sheet ("ALICE may: play tic-tac-toe with Ahmed's
+   Accepting opens a scope sheet ("AliceAgent may: play tic-tac-toe with Bob's
    agent; see game results"). Toggles, not jargon. Every grant shows its
    expiry, adjustable, default 1 year.
 3. **Monitor.** Each friendship has an activity feed (games played, results,

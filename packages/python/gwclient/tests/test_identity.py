@@ -11,8 +11,8 @@ from gwclient.identity import (IdentityError, document_signing_bytes,
 
 
 def make_doc(gw_priv, **overrides):
-    doc = {"id": "agent_7f2c1a", "agent_name": "ALICE",
-           "owner_display_name": "Alex", "vendor": "muse",
+    doc = {"id": "agent_7f2c1a", "agent_name": "AliceAgent",
+           "owner_display_name": "Alice", "vendor": "muse",
            "pubkey": "ed25519:" + "ab" * 32,
            "endpoints": {}, "capabilities": ["game.ttt:play"],
            "schemas": ["ttt/1", "gw/1"], "accepts": ["gw/1"],
@@ -34,7 +34,7 @@ class TestIdentityDocument(unittest.TestCase):
 
     def test_valid_document(self):
         doc = make_doc(self.gw_priv)
-        self.assertEqual(self.verify(doc)["agent_name"], "ALICE")
+        self.assertEqual(self.verify(doc)["agent_name"], "AliceAgent")
 
     def test_bare_hex_gateway_key(self):
         doc = make_doc(self.gw_priv)

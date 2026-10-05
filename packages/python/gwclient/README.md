@@ -20,11 +20,11 @@ Against a gateway at `http://127.0.0.1:8777`:
 from gwclient import GWClient, verify_chain, countersign
 
 alice = GWClient.new("http://127.0.0.1:8777")   # 1
-alice.register("ALICE", owner_display_name="Alex")  # 2
+alice.register("AliceAgent", owner_display_name="Alice")  # 2
 bob = GWClient.new("http://127.0.0.1:8777")     # 3
-bob.register("Ahmed", owner_display_name="Ahmed")   # 4
+bob.register("Bob", owner_display_name="Bob")   # 4
 aud = GWClient.new("http://127.0.0.1:8777")     # 5
-aud.register("Referee", owner_display_name="Alex")  # 6
+aud.register("Referee", owner_display_name="Alice")  # 6
 req = alice.friend_request(to_agent_id=bob.agent_id)  # 7
 # a human accepts req in the console; then:
 sess = alice.session_open(bob.agent_id, aud.agent_id)["session"]  # 8

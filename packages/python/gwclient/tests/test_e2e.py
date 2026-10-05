@@ -101,7 +101,7 @@ class SpecRequestShape(unittest.TestCase):
     def test_register_envelope_shape(self):
         client = GWClient.new("http://127.0.0.1:9")
         env = client._envelope("gw.register", "gw.register", "gw/1", None,
-                               {"name": "ALICE",
+                               {"name": "AliceAgent",
                                 "pubkey": "ed25519:" + "ab" * 32})
         self.assertEqual(env["from"], "agent_unregistered")
         self.assertEqual(env["to"], "gateway")
