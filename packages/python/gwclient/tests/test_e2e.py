@@ -73,7 +73,8 @@ def console_accept(base, request_id):
 
     post(base + "/console/login",
          ("token=%s" % CONSOLE_TOKEN).encode())
-    post(base + "/console/requests/%s/accept" % request_id, b"")
+    post(base + "/console/requests/%s/accept" % request_id,
+         b"scope=game.ttt%3Aplay&scope=game.ttt%3Aspectate")
 
 
 def wait_for_notification(aud, session, msg_type, timeout=10, round=None):

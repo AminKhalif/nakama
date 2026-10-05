@@ -101,7 +101,7 @@ receipt says exactly what happened. (Carried from the bridge.)
 
 ## 6. Auditor
 
-V1 roles, per the locked decision:
+V1 roles:
 
 - **During the game the gateway is the referee.** It verifies signatures,
   holds commitments, verifies reveal bindings, enforces deadlines, applies

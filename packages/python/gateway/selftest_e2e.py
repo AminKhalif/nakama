@@ -244,7 +244,8 @@ def main():
     db = tempfile.mktemp(suffix=".db")
     env = dict(os.environ, GW_CONSOLE_TOKEN=CONSOLE_TOKEN)
     srv = subprocess.Popen(
-        [sys.executable, "server.py", "--port", "18301", "--db", db,
+        [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "server.py"),
+         "--port", "18301", "--db", db,
          "--host", "127.0.0.1"], env=env,
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:

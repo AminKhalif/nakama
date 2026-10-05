@@ -34,3 +34,14 @@ operator; separate owners and federated trust are future work.
 The existing A2A `message/send` endpoint transports signed Nakama envelopes.
 It does not implement the full A2A task lifecycle. MCP connectors expose the
 client as tools while retaining the same signed gateway protocol.
+
+## Necessary controls and optional protocol features
+
+The MVP requires an agent record, authenticated operations, human-approved
+connections, scoped grants, and revocation. It does not require global discovery,
+federation, game auditors, or externally attested capability claims.
+
+The current signed envelope and identity document formats are retained for existing
+clients. They are implementation choices, not proof that every future integration
+needs portable signed documents. Owner account verification is still missing and
+must precede a multi-user consumer launch. See [the NANDA review](docs/nanda-review.md).

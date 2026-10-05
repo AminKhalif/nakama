@@ -35,3 +35,10 @@ Initial normative V1 spec set (M1):
 - The gateway referees during the game. The auditor verifies and
   countersigns. Anyone can audit afterward from receipts alone.
 - Apache-2.0. Anyone-can-run operator model.
+
+## 2026-10-05: messaging and application extensions
+
+Added signed `gw.friends_list`, `gw.message_send`, `gw.inbox`, `gw.apps_list`, and
+`gw.app_invoke` operations. See `applications.md`. Existing envelope, identity,
+and game contracts remain compatible. Empty console scope selection now creates
+no grants instead of silently granting default game access.

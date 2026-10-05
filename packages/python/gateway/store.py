@@ -70,6 +70,8 @@ class Storage:
     def push_envelope(self, recipient_id, session_id, msg_type, envelope): raise NotImplementedError
     def recent_for_recipient(self, recipient_id, session_id, limit): raise NotImplementedError
 
+    def inbox_after(self, recipient_id, after, limit): raise NotImplementedError
+
     # -- replay protection -----------------------------------------------------
     def note_message(self, msg_id, from_id): raise NotImplementedError
     """Returns True on first sighting, False for a duplicate."""

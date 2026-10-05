@@ -45,6 +45,8 @@ INTERNAL_ERROR = -32603
 # method -> (envelope type, envelope schema) pairing, enforced per
 # envelope.md §3. ttt.commit / ttt.reveal are accepted as alias methods.
 METHOD_TYPE_PAIRS = {
+    **{method: (method, "gw/1") for method in (
+        "gw.friends_list", "gw.message_send", "gw.inbox", "gw.apps_list", "gw.app_invoke")},
     "gw.register": ("gw.register", "gw/1"),
     "gw.friend_request": ("gw.friend_request", "gw/1"),
     "gw.friend_decide": ("gw.friend_decide", "gw/1"),
@@ -181,7 +183,7 @@ def validate_envelope_shape(env):
     for field in ("msg_id", "from", "to", "type", "schema", "session", "payload"):
         if field not in env:
             return "envelope missing field: " + field
-    if not MSG_ID_RE.match(env.get("msg_id") or ""):
+    if not isinstance(env.get("msg_id"), str) or not MSG_ID_RE.fullmatch(env["msg_id"]):
         return "msg_id must match ^msg_[0-9a-f]{12,}$"
     if not isinstance(env.get("from"), str) or not env["from"]:
         return "envelope 'from' must be a non-empty string"
@@ -283,6 +285,8 @@ def unwrap_a2a_message(params):
     except (KeyError, TypeError):
         raise WireError(INVALID_PARAMS,
                         'message/send needs params.message.parts')
+    if not isinstance(parts, list):
+        raise WireError(INVALID_PARAMS, 'message.parts must be a list')
     texts = [p.get("text") for p in parts
              if isinstance(p, dict) and p.get("kind") == "text" and p.get("text")]
     if not texts:

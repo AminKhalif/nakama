@@ -103,6 +103,9 @@ def register(store, gw_keys, env):
         return None, wire.AppError("bad_signature",
                                    "envelope must be signed with the claimed "
                                    "key", 401)
+    for field in ('name', 'owner_display_name', 'vendor'):
+        if not isinstance(payload.get(field), str):
+            return None, wire.AppError('bad_request', field + ' must be a string')
     name = (payload.get("name") or "").strip()
     owner_display_name = (payload.get("owner_display_name") or "").strip()[:100]
     vendor = (payload.get("vendor") or "").strip()[:100]
