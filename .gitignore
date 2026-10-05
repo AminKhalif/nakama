@@ -1,0 +1,39 @@
+# Python / sqlite
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite3
+*.log
+.venv/
+venv/
+.env
+
+# Keys / secrets (never commit these)
+*.pem
+*.key
+secrets*
+*secret*
+id_rsa*
+id_ed25519*
+credentials*.json
+*.p12
+
+# Node / TypeScript (future client library)
+node_modules/
+dist/
+*.tsbuildinfo
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Build scratch
+/tmp/
