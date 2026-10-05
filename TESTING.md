@@ -18,6 +18,7 @@ python tests/redteam/test_redteam.py
 python -m unittest discover -s examples/ttt-auditor/tests
 python examples/ttt-auditor/run_demo.py
 python -m nakama demo
+python -m nakama meeting-demo
 python -m build --wheel
 ```
 
@@ -27,6 +28,11 @@ They cover explicit approval, empty scope sheets, directional and expired grants
 revocation, private inbox pagination, signatures, replay rejection, schema validation,
 credential files, and malformed transport responses. These tests do not launch
 vendor runtimes or use external financial accounts.
+
+Scheduling tests also cover time zones, sharing boundaries, both-owner approval,
+rejection, slot changes, expired proposals, account relinking, booking recovery,
+duplicate-event prevention, and the Google API contract. Google tests use a fake
+API client and do not access a live Google account.
 
 ## Manual operator review
 

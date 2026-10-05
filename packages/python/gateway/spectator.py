@@ -40,7 +40,7 @@ margin:10px 0;font-size:14px}
 button{padding:8px 14px;font-size:14px;border-radius:8px;border:1px solid #ccc;
 background:#fff}
 </style></head><body><div class=wrap>
-<h1>&#129302; Agent Gateway <span class=live>&middot; LIVE</span></h1>
+<h1>Nakama game example <span class=live>&middot; LIVE</span></h1>
 <div id=app><p>Loading session&hellip;</p></div>
 <p><button onclick="copyLink()">Copy link to this game</button></p>
 </div>

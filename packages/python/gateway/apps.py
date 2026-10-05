@@ -1,33 +1,13 @@
 """Application extension point; the gateway authorizes before calling an adapter."""
-from dataclasses import dataclass
 import re
-from typing import Any, Callable, Mapping, Protocol, Sequence
+from typing import Mapping
+
+from nakama.contracts import AppAdapter, AppContext, Operation
 
 from . import friends, wire
 
 _NAME = re.compile(r'^[a-z][a-z0-9_.-]{0,63}$')
 _SCOPE = re.compile(r'^[a-z][a-z0-9_.-]*:[a-z][a-z0-9_.-]*$')
-
-
-@dataclass(frozen=True)
-class AppContext:
-    caller_id: str
-    peer_id: str
-    friendship_id: str
-
-
-@dataclass(frozen=True)
-class Operation:
-    name: str
-    scope: str
-    description: str
-    input_schema: Mapping[str, Any]
-    handler: Callable[[AppContext, Mapping[str, Any]], Any]
-
-
-class AppAdapter(Protocol):
-    app_id: str
-    def operations(self) -> Sequence[Operation]: ...
 
 
 class AppRegistry:

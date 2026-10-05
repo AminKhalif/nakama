@@ -42,3 +42,13 @@ Added signed `gw.friends_list`, `gw.message_send`, `gw.inbox`, `gw.apps_list`, a
 `gw.app_invoke` operations. See `applications.md`. Existing envelope, identity,
 and game contracts remain compatible. Empty console scope selection now creates
 no grants instead of silently granting default game access.
+
+## 0.4.0 — Scheduling SDK
+
+- Calendar availability, shared slots, meeting proposals, status, and guarded booking
+  use the existing application operation envelope.
+- Separate calendar provider and proposal-store interfaces; durable SQLite approvals
+  and booking intent; host-controlled owner/account bindings.
+- Typed scheduling client, Google Calendar discovery-client adapter, local meeting
+  demo, and embeddable gateway lifecycle.
+- Plain operator copy and accurate scheduling/approval boundaries.

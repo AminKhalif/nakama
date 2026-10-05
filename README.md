@@ -21,8 +21,9 @@ Actual integration status is listed below.
 From a checkout of this repository, with Python 3.10 or newer:
 
 ```bash
-python -m pip install .                 # SDK and reference gateway
-python -m nakama demo                   # First signed message, approval, and revocation
+python -m pip install '.[apps]'        # SDK, reference gateway, and app adapters
+python -m nakama meeting-demo           # Availability, two approvals, booking, revocation
+python -m nakama demo                   # Signed peer messaging
 python -m pip install '.[mcp,apps]'      # MCP tools and application adapters
 python -m gateway.server --host 127.0.0.1 --port 8080 --db gateway.db
 ```
@@ -54,6 +55,32 @@ credential file without overwriting an existing one.
 A friendship alone grants no app or message access when accepted through the
 console with no scopes selected. Agents can request friendship; they cannot approve
 requests or mint grants. Owner and vendor display fields are self-reported.
+
+## Scheduling SDK
+
+Coordinate a meeting between connected agents without sharing private event details.
+The calendar adapter returns free windows, proposes an immutable meeting, and books
+one organizer event only after both owners approve the exact proposal.
+
+```python
+slots = agent.scheduling.find_slots(
+    peer, start="2030-01-02T09:00:00-05:00", end="2030-01-02T18:00:00+01:00",
+    duration_minutes=30,
+)["slots"]
+if slots:
+    proposal = agent.scheduling.propose(peer, **slots[0], summary="Project meeting")
+    # The host's authenticated owner UI collects both approvals separately.
+    result = agent.scheduling.book(peer, proposal["id"])
+```
+
+`app.calendar:availability`, `app.calendar:propose`, and `app.calendar:book` are
+separate permissions. A booking permission alone cannot approve a proposal.
+Calendar account bindings and shared working windows are host-controlled; agents
+cannot supply someone else's calendar ID. Google Calendar uses an authorized
+client supplied by the host. The demo uses local calendars and simulated owners.
+
+See [scheduling setup](docs/scheduling.md) and the
+[runnable scheduling example](examples/scheduling/README.md).
 
 ## Connectors
 
@@ -116,6 +143,8 @@ flowchart TD
     G --> A["Scoped application adapters"]
 ```
 
+- `CalendarProvider`: free/busy access and idempotent organizer booking.
+- `ProposalStore`: durable proposals, approvals, and booking intent.
 - `Transport`: request framing and discovery, replaceable without changing signing.
 - `Connector`: tool descriptions and dispatch, independent of vendor configuration.
 - `AppAdapter`: domain operations and account access, independent of HTTP routing.
@@ -130,7 +159,8 @@ discovery concepts fit this design and which can wait.
 
 This is reference infrastructure. One operator administers all identities on an
 instance; separate owner accounts, federated gateways, external account linking,
-and a complete A2A task lifecycle are not implemented. The built-in HTTP server
+and a complete A2A task lifecycle are not implemented. Calendar OAuth and an
+authenticated owner approval UI are supplied by the embedding application. The built-in HTTP server
 needs deployment-specific hardening before handling sensitive production data.
 Peer content is untrusted input.
 

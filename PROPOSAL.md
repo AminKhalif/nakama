@@ -8,6 +8,7 @@ implement domain operations behind explicit scopes.
 ## Boundaries
 
 - `spec/`: versioned wire contracts and signature rules.
+- `packages/python/nakama/`: public SDK, contracts, connectors, and scheduling.
 - `packages/python/gwclient/`: client operations and independent verification.
 - `packages/python/gateway/`: authorization, persistence, routing, and console.
 - `examples/`: runnable applications and protocol demonstrations.
@@ -45,3 +46,17 @@ The current signed envelope and identity document formats are retained for exist
 clients. They are implementation choices, not proof that every future integration
 needs portable signed documents. Owner account verification is still missing and
 must precede a multi-user consumer launch. See [the NANDA review](docs/nanda-review.md).
+
+## Scheduling boundaries
+
+The scheduling service depends on calendar-provider and proposal-store interfaces,
+plus an injected permission checker. It does not import the HTTP server or vendor
+configuration. The gateway adapter translates signed application calls into service
+operations; the SDK's scheduling client uses that same wire contract.
+
+A host links accounts and authenticates owners. Owners approve an exact proposal
+through the trusted service API; agents cannot call that approval API. Availability
+sharing, proposal creation, and booking have separate scopes. Event details stay
+inside provider implementations. Durable booking intent and idempotent provider
+request IDs support retry after uncertain writes, without treating two calendars
+as an atomic transaction. One organizer event invites the other participant.

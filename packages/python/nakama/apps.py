@@ -1,4 +1,5 @@
 """Application interfaces for embedding a gateway; install the apps extra."""
-from gateway.apps import AppAdapter, AppContext, AppRegistry, Operation
+from .contracts import AppAdapter, AppContext, Operation
+from gateway.apps import AppRegistry
 
 __all__ = ['AppAdapter', 'AppContext', 'AppRegistry', 'Operation']

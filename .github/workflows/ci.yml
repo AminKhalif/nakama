@@ -25,4 +25,5 @@ jobs:
       - run: python -m unittest discover -s examples/ttt-auditor/tests
       - run: python examples/ttt-auditor/run_demo.py
       - run: python -m nakama demo
+      - run: python -m nakama meeting-demo
       - run: python -m build --wheel

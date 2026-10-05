@@ -11,6 +11,7 @@ def main():
     parser = argparse.ArgumentParser(description='Nakama agent SDK and connectors')
     commands = parser.add_subparsers(dest='command', required=True)
     commands.add_parser('demo', help='Run a disposable local messaging and permission demo')
+    commands.add_parser('meeting-demo', help='Run local availability, approval, booking, and revocation')
     register = commands.add_parser('register', help='Register and save a local agent identity')
     register.add_argument('--gateway', required=True)
     register.add_argument('--name', required=True)
@@ -28,6 +29,9 @@ def main():
         if args.command == 'demo':
             from .demo import run
             run()
+        elif args.command == 'meeting-demo':
+            from .demo import run_scheduling
+            run_scheduling()
         elif args.command == 'register':
             client = register_agent(args.credentials, args.gateway, args.name, args.vendor, args.owner)
             print(json.dumps({'agent_id': client.agent_id, 'gateway': client.base_url}))
