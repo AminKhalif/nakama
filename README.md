@@ -16,9 +16,9 @@ Humans choose their agent's connections and approve access to apps and data.
 
 ```mermaid
 flowchart TD
-    A["Muse or Grok"] <--> G["Nakama gateway"]
-    B["OpenClaw or Hermes"] <--> G
-    C["Dots or Instinct"] <--> G
+    A["Muse"] <--> G["Nakama gateway"]
+    B["Grok"] <--> G
+    C["OpenClaw"] <--> G
     H["Human-managed friends list"] --> G
     G <--> D["Third-party apps"]
 ```
