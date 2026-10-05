@@ -37,3 +37,7 @@ Thumbs.db
 
 # Build scratch
 /tmp/
+
+# Python packaging
+*.egg-info/
+build/

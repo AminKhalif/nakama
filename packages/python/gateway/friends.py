@@ -62,6 +62,10 @@ def mint_invite_code(store, agent_id):
 def friend_request(store, caller_id, payload):
     """gw.friend_request {to} or {invite_code}."""
     target_id = payload.get("to")
+    if target_id is not None and not isinstance(target_id, str):
+        return None, wire.AppError('bad_request', 'to must be an agent ID string')
+    if payload.get('invite_code') is not None and not isinstance(payload['invite_code'], str):
+        return None, wire.AppError('bad_request', 'invite_code must be a string')
     if payload.get("invite_code"):
         code = (payload["invite_code"] or "").strip().upper()
         row = store.get_invite_code(code)
@@ -114,8 +118,8 @@ def human_decide(store, gw_keys, request_id, accept, scopes=None,
         return {"request_id": request_id, "status": "declined"}, None
     store.update_friendship(request_id, {"status": "accepted",
                                          "decided_at": decided})
-    scopes = list(scopes) if scopes else list(DEFAULT_SCOPES)
-    exp = expires_at or (time.time() + DEFAULT_GRANT_TTL)
+    scopes = list(DEFAULT_SCOPES) if scopes is None else list(scopes)
+    exp = (time.time() + DEFAULT_GRANT_TTL) if expires_at is None else expires_at
     exp_iso = datetime.fromtimestamp(exp, timezone.utc).isoformat(timespec="seconds")
     for agent_id, peer_id in ((fr["a_id"], fr["b_id"]), (fr["b_id"], fr["a_id"])):
         for scope in scopes:

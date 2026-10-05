@@ -73,7 +73,8 @@ def console_accept(base, request_id):
 
     post(base + "/console/login",
          ("token=%s" % CONSOLE_TOKEN).encode())
-    post(base + "/console/requests/%s/accept" % request_id, b"")
+    post(base + "/console/requests/%s/accept" % request_id,
+         b"scope=game.ttt%3Aplay&scope=game.ttt%3Aspectate")
 
 
 def wait_for_notification(aud, session, msg_type, timeout=10, round=None):
@@ -101,7 +102,7 @@ class SpecRequestShape(unittest.TestCase):
     def test_register_envelope_shape(self):
         client = GWClient.new("http://127.0.0.1:9")
         env = client._envelope("gw.register", "gw.register", "gw/1", None,
-                               {"name": "ALICE",
+                               {"name": "AliceAgent",
                                 "pubkey": "ed25519:" + "ab" * 32})
         self.assertEqual(env["from"], "agent_unregistered")
         self.assertEqual(env["to"], "gateway")

@@ -1,16 +1,17 @@
 # gwclient
 
-Embeddable Python client library for the agent-interop gateway. Stdlib
-only, Python 3.9+. No dependencies, no network calls except to the
-gateway you point it at. Implements the frozen M1 specs in `spec/`:
+Embeddable Python client library for the agent-interop gateway. Python
+3.10+, with PyNaCl/libsodium for signing. No network calls except to the
+gateway you point it at. Implements the versioned specs in `spec/`:
 envelope (`envelope.md`), identity (`identity.md`), tic-tac-toe
 (`ttt-v1.md`), receipts (`receipts.md`). The library speaks the
 protocol; it never reimplements the gateway (enforcement lives there).
 
 ## Install
 
-Copy the `gwclient/` directory into your project or onto `sys.path`.
-There is nothing to pip install.
+Install the repository with `python -m pip install .`. New integrations can use
+`from nakama import Client`; existing `gwclient` imports remain supported. See the
+[root README](../../../README.md) for messaging, app adapters, and MCP connectors.
 
 ## Quickstart
 
@@ -20,11 +21,11 @@ Against a gateway at `http://127.0.0.1:8777`:
 from gwclient import GWClient, verify_chain, countersign
 
 alice = GWClient.new("http://127.0.0.1:8777")   # 1
-alice.register("ALICE", owner_display_name="Alex")  # 2
+alice.register("AliceAgent", owner_display_name="Alice")  # 2
 bob = GWClient.new("http://127.0.0.1:8777")     # 3
-bob.register("Ahmed", owner_display_name="Ahmed")   # 4
+bob.register("Bob", owner_display_name="Bob")   # 4
 aud = GWClient.new("http://127.0.0.1:8777")     # 5
-aud.register("Referee", owner_display_name="Alex")  # 6
+aud.register("Referee", owner_display_name="Alice")  # 6
 req = alice.friend_request(to_agent_id=bob.agent_id)  # 7
 # a human accepts req in the console; then:
 sess = alice.session_open(bob.agent_id, aud.agent_id)["session"]  # 8
@@ -50,14 +51,10 @@ naming the exact receipt that failed.
 
 ### crypto — Ed25519
 
-`generate_keypair()`, `public_key_from_private()`, `sign()`,
-`verify()`. Python's stdlib has no Ed25519, so the field arithmetic is
-vendored here: a compact pure-Python implementation in the style of
-Daniel J. Bernstein's reference code (public domain), as published by
-Frank Braun. The module docstring carries the full attribution. The
-four-function interface is the swap point: replace the body with
-libsodium or `cryptography` later without touching callers. Correctness
-is pinned by the RFC 8032 test vectors in `tests/test_crypto.py`.
+`generate_keypair()`, `public_key_from_private()`, `sign()`, and `verify()`
+share a PyNaCl/libsodium signing backend with the gateway. The wrapper preserves
+the existing key and signature formats. RFC 8032 test vectors in
+`tests/test_crypto.py` verify compatibility.
 
 ### envelope — gw/1 signed envelopes
 

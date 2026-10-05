@@ -25,8 +25,8 @@ rotation or field changes:
 ```json
 {
   "id": "agent_7f2c1a",
-  "agent_name": "ALICE",
-  "owner_display_name": "Alex",
+  "agent_name": "AliceAgent",
+  "owner_display_name": "Alice",
   "vendor": "muse",
   "pubkey": "ed25519:<64 hex>",
   "endpoints": { "notify": "https://agent.example.com/gw/notify" },

@@ -13,34 +13,17 @@ ttt.* envelope type (the ttt.* aliases are equivalent). session
 (top-level) equals payload.session on session-scoped calls.
 """
 
-import json
-import urllib.request
-import urllib.error
-
 from . import crypto
 from . import envelope as env_mod
 from . import commit as commit_mod
-
-
-class GatewayError(Exception):
-    """The gateway answered with a JSON-RPC error. Carries the typed
-    code (spec/envelope.md section 4), message, and optional data."""
-
-    def __init__(self, code, message, data=None):
-        self.code = code
-        self.data = data
-        super(GatewayError, self).__init__(
-            "gateway error %s: %s" % (code, message))
-
-
-class ClientError(Exception):
-    """Local client misuse (not registered yet, bad arguments, transport
-    failure)."""
+from .errors import ClientError, GatewayError
+from .transport import HTTPTransport, Transport
+from typing import Any, Optional
 
 
 class GWClient:
     def __init__(self, base_url, private_key_hex=None, public_key_hex=None,
-                 agent_id=None, timeout=10):
+                 agent_id=None, timeout=10, transport: Optional[Transport] = None):
         self.base_url = base_url.rstrip("/")
         self.rpc_url = self.base_url + "/rpc"
         self.private_key_hex = private_key_hex
@@ -48,52 +31,23 @@ class GWClient:
         self.agent_id = agent_id
         self.identity = None  # gateway-signed identity document
         self.timeout = timeout
-        self._rpc_id = 0
+        self.transport = transport if transport is not None else HTTPTransport(base_url, timeout)
 
     @classmethod
-    def new(cls, base_url, timeout=10):
+    def new(cls, base_url, timeout=10, transport: Optional[Transport] = None):
         """A client with a fresh locally-generated keypair. The private
         key never leaves this process (spec/identity.md section 1)."""
         priv, pub = crypto.generate_keypair()
         return cls(base_url, private_key_hex=priv, public_key_hex=pub,
-                   timeout=timeout)
+                   timeout=timeout, transport=transport)
 
     # -- transport ------------------------------------------------------
 
     def _rpc(self, method, params):
-        self._rpc_id += 1
-        body = json.dumps({"jsonrpc": "2.0", "id": self._rpc_id,
-                           "method": method, "params": params}).encode()
-        req = urllib.request.Request(
-            self.rpc_url, data=body, method="POST",
-            headers={"Content-Type": "application/json",
-                     "User-Agent": "gwclient/1"})
-        try:
-            with urllib.request.urlopen(req,
-                                        timeout=self.timeout) as resp:
-                reply = json.loads(resp.read().decode("utf-8"))
-        except urllib.error.HTTPError as exc:
-            # Spec/envelope.md section 4: errors carry the HTTP status
-            # as the class and a JSON-RPC 2.0 error object with the
-            # typed code. Recover the typed error when present.
-            try:
-                reply = json.loads(exc.read().decode("utf-8"))
-            except (ValueError, OSError):
-                reply = None
-            if isinstance(reply, dict) and "error" in reply:
-                err = reply["error"] or {}
-                raise GatewayError(err.get("code"), err.get("message"),
-                                   err.get("data"))
-            raise ClientError("HTTP %s from %s" % (exc.code, self.rpc_url))
-        except (urllib.error.URLError, OSError) as exc:
-            raise ClientError("cannot reach %s: %s" % (self.rpc_url, exc))
-        if not isinstance(reply, dict) or reply.get("jsonrpc") != "2.0":
-            raise ClientError("bad JSON-RPC reply: %r" % (reply,))
-        if "error" in reply:
-            err = reply["error"] or {}
-            raise GatewayError(err.get("code"), err.get("message"),
-                               err.get("data"))
-        return reply.get("result")
+        result = self.transport.request(method, params)
+        if not isinstance(result, dict):
+            raise ClientError('gateway operation returned a non-object result')
+        return result
 
     def _envelope(self, method, msg_type, schema, session, payload):
         if not self.private_key_hex:
@@ -111,7 +65,7 @@ class GWClient:
 
     # -- identity & friends ---------------------------------------------
 
-    def register(self, name, owner_display_name="", vendor="",
+    def register(self, name, owner_display_name=None, vendor="python",
                  endpoints=None, capabilities=None, schemas=None):
         """Create the agent identity. Sends a signed envelope from
         "agent_unregistered" with the public key in the payload; the
@@ -123,7 +77,7 @@ class GWClient:
         payload = {
             "name": name,
             "pubkey": "ed25519:" + self.public_key_hex,
-            "owner_display_name": owner_display_name,
+            "owner_display_name": name if owner_display_name is None else owner_display_name,
             "vendor": vendor,
             "endpoints": endpoints or {},
             "capabilities": capabilities or [],
@@ -169,15 +123,33 @@ class GWClient:
         """The gateway's Agent Card: version and the gateway public key
         (spec/identity.md section 3), the trust root for receipt and
         identity-document verification."""
-        url = self.base_url + "/.well-known/agent-card.json"
-        req = urllib.request.Request(url,
-                                     headers={"User-Agent": "gwclient/1"})
-        try:
-            with urllib.request.urlopen(req,
-                                        timeout=self.timeout) as resp:
-                return json.loads(resp.read().decode("utf-8"))
-        except (urllib.error.URLError, OSError) as exc:
-            raise ClientError("cannot reach %s: %s" % (url, exc))
+        return self.transport.get_json('/.well-known/agent-card.json')
+
+    def call(self, method, payload, *, schema="gw/1", msg_type=None, session=None):
+        """Sign a versioned extension operation using the configured transport."""
+        if self.agent_id is None:
+            raise ClientError("register() first: no agent identity yet")
+        if not isinstance(payload, dict):
+            raise ClientError("payload must be an object")
+        return self._rpc(method, self._envelope(
+            method, msg_type or method, schema, session, payload))
+
+    def friends(self) -> list[dict[str, Any]]:
+        return self.call("gw.friends_list", {})["friends"]
+
+    def send_message(self, peer_id: str, content: dict[str, Any]) -> dict[str, Any]:
+        return self.call("gw.message_send", {"peer_id": peer_id, "content": content})
+
+    def inbox(self, after: int = 0, limit: int = 50) -> dict[str, Any]:
+        return self.call("gw.inbox", {"after": after, "limit": limit})
+
+    def applications(self) -> list[dict[str, Any]]:
+        return self.call("gw.apps_list", {})["operations"]
+
+    def invoke_app(self, app: str, operation: str, peer_id: str,
+                   data: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+        return self.call("gw.app_invoke", {"app": app, "operation": operation,
+                         "peer_id": peer_id, "input": {} if data is None else data})
 
     # -- game -----------------------------------------------------------
 

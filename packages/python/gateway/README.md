@@ -3,19 +3,20 @@
 Reference gateway for cross-vendor agent interop: agent identity, friend
 lists, expiring grants, tic-tac-toe sessions with commit/reveal fairness,
 hash-chained signed receipts, a live spectator page, and a human operator
-console. Wire protocol is A2A JSON-RPC 2.0 with a per-message Ed25519
-signature extension. Stdlib-only Python 3.9+, one SQLite file.
+console. Wire protocol is Nakama JSON-RPC 2.0 with a per-message Ed25519
+signature extension and an A2A text-part wrapper. Python 3.10+, PyNaCl signing,
+and one SQLite file.
 
 Normative protocol: `spec/` (envelope, identity, friends, receipts,
 ttt-v1, a2a-extension). This README is the operator guide.
 
 ## Run it
 
-Local run (no dependencies, no install):
+Local run from the repository root:
 
 ```bash
-cd packages/python/gateway
-python3 server.py --port 8080 --db gw.db --host 127.0.0.1
+python -m pip install .
+python -m gateway.server --port 8080 --db gw.db --host 127.0.0.1
 ```
 
 On first start the gateway prints its public key and the console operator
@@ -27,11 +28,12 @@ Docker:
 
 ```bash
 cd packages/python/gateway
-docker build -t agent-gateway .
+cd ../../..
+docker build -f packages/python/gateway/Dockerfile -t agent-gateway .
 docker run -p 8080:8080 -v gwdata:/data agent-gateway
 ```
 
-The database lives in the `gwdata` volume at `/data/gw.db`, so it
+The database lives in the `gwdata` volume at `/data/gateway.db`, so it
 survives restarts. Read the console token from `docker logs` on first
 start, or preset it (see env vars).
 
@@ -39,7 +41,7 @@ Environment variables:
 
 | Variable | Default | What it does |
 |---|---|---|
-| `GW_DB` | `gw.db` next to `server.py` | SQLite file path (`/data/gw.db` in Docker) |
+| `GW_DB` | `gw.db` next to `server.py` | SQLite file path (`/data/gateway.db` in Docker) |
 | `GW_CONSOLE_TOKEN` | generated on first run | Presets the operator token instead of generating one |
 | `GW_HOST` | `127.0.0.1` | Bind address |
 | `PORT` | `8080` | Port (flag `--port` wins) |
@@ -48,7 +50,7 @@ Verify it works:
 
 ```bash
 cd packages/python/gateway
-python3 selftest_crypto.py   # RFC 8032 vectors for the vendored Ed25519
+python3 selftest_crypto.py   # RFC 8032 vectors for the shared signing backend
 python3 selftest_e2e.py      # full flows against a live server instance
 ```
 
@@ -101,7 +103,7 @@ verification algorithm.
 
 | File | Owns |
 |---|---|
-| `crypto.py` | Ed25519 (vendored public-domain reference) behind keygen/sign/verify |
+| `crypto.py` | Shared PyNaCl/libsodium backend behind keygen/sign/verify |
 | `wire.py` | JSON-RPC framing, envelope checks, typed errors, A2A shim, Agent Card |
 | `store.py` / `sqlite_store.py` | Storage interface / SQLite backend (all SQL here) |
 | `identity.py` | Registration, signed identity docs, rotation, revocation list |

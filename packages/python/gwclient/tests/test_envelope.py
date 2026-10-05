@@ -111,7 +111,7 @@ class TestEnvelope(unittest.TestCase):
     def test_null_session_allowed_for_sessionless(self):
         env, priv = make_env(msg_type="gw.register", schema="gw/1",
                              session=None,
-                             payload={"name": "ALICE",
+                             payload={"name": "AliceAgent",
                                       "pubkey": "ed25519:" + "ab" * 32})
         pub = crypto.public_key_from_private(priv)
         out = verify_envelope(env, pub)
@@ -139,7 +139,7 @@ class TestEnvelope(unittest.TestCase):
         env, priv = make_env(from_id="agent_unregistered",
                              msg_type="gw.register", schema="gw/1",
                              session=None,
-                             payload={"name": "ALICE",
+                             payload={"name": "AliceAgent",
                                       "pubkey": "ed25519:" + "ab" * 32})
         pub = crypto.public_key_from_private(priv)
         out = verify_envelope(env, pub)

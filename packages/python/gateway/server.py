@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from gateway import console as console_mod  # noqa: E402
 from gateway import crypto  # noqa: E402
-from gateway import friends, identity, receipts  # noqa: E402
+from gateway import apps, messaging, friends, identity, receipts  # noqa: E402
 from gateway import sessions as ttt  # noqa: E402
 from gateway import spectator, sqlite_store, wire  # noqa: E402
 from gateway import __version__  # noqa: E402
@@ -34,9 +34,10 @@ MAX_BODY = 65536
 
 
 class Ctx:
-    def __init__(self, store, gw_keys):
+    def __init__(self, store, gw_keys, applications=None):
         self.store = store
         self.gw_keys = gw_keys
+        self.applications = applications if applications is not None else apps.AppRegistry()
 
 
 # ---------------------------------------------------------------------------
@@ -173,6 +174,16 @@ def dispatch(ctx, method, params, console_authed=False):
         raise wire.WireError(wire.METHOD_NOT_FOUND, "unknown method: " + method)
 
     agent_id = _verify_caller(ctx, env)
+    if method == "gw.friends_list":
+        return messaging.friends_list(ctx.store, agent_id)
+    if method == "gw.message_send":
+        return messaging.send(ctx.store, agent_id, env)
+    if method == "gw.inbox":
+        return messaging.inbox(ctx.store, agent_id, payload)
+    if method == "gw.apps_list":
+        return {"operations": ctx.applications.describe()}
+    if method == "gw.app_invoke":
+        return ctx.applications.invoke(ctx.store, agent_id, payload)
     if method == "gw.friend_request":
         result, err = friends.friend_request(ctx.store, agent_id, payload)
     elif method == "gw.session_open":
@@ -391,7 +402,7 @@ at <code>/g/&lt;session&gt;</code>.</p></div>
 # main
 # ---------------------------------------------------------------------------
 
-def main():
+def main(applications=None):
     import argparse
     default_db = os.environ.get(
         "GW_DB", os.path.join(os.path.dirname(os.path.abspath(__file__)), "gw.db"))
@@ -404,12 +415,13 @@ def main():
     store = sqlite_store.SQLiteStorage(args.db)
     gw_keys = identity.ensure_gateway_keys(store)
     fresh_token = console_mod.ensure_console_token(store)
-    ctx = Ctx(store, gw_keys)
+    ctx = Ctx(store, gw_keys, applications)
 
-    Handler.ctx = ctx
-    Handler.console_app = console_mod.ConsoleApp(store, gw_keys)
-
-    srv = ThreadingHTTPServer((args.host, args.port), Handler)
+    handler = type('GatewayHandler', (Handler,), {
+        'ctx': ctx,
+        'console_app': console_mod.ConsoleApp(store, gw_keys, scopes=ctx.applications.scopes()),
+    })
+    srv = ThreadingHTTPServer((args.host, args.port), handler)
     real_port = srv.server_address[1]
     print("Agent Interop Gateway v%s on http://%s:%d  db=%s"
           % (__version__, args.host, real_port, args.db), flush=True)

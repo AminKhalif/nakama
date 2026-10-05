@@ -26,6 +26,7 @@ SESSION_TTL = 12 * 3600
 _sessions = {}  # sid -> expiry unix ts (in-memory; single process)
 
 SCOPE_WORDS = {
+    "messages:send": "Send structured messages to this friend",
     "game.ttt:play": "Play tic-tac-toe with this friend",
     "game.ttt:spectate": "See this friend's game results",
 }
@@ -134,7 +135,7 @@ def login_page(error=""):
             "</div></body></html>")
 
 
-def dashboard(store):
+def dashboard(store, available_scopes=None):
     agents = store.list_agents()
     friendships = store.list_friendships()
     sess_list = store.all_sessions()
@@ -189,9 +190,9 @@ def dashboard(store):
                      '<span class=muted>Accepting opens a scope sheet.</span>'
                      '<form method=post action="/console/requests/%s/accept">'
                      % (esc(frm), r["id"]))
-            for scope in friends.DEFAULT_SCOPES:
+            for scope in (available_scopes if available_scopes is not None else friends.DEFAULT_SCOPES):
                 h.append('<label class=scope><input type=checkbox name=scope '
-                         'value="%s" checked> %s <code>%s</code></label>'
+                         'value="%s"> %s <code>%s</code></label>'
                          % (esc(scope), esc(SCOPE_WORDS.get(scope, scope)),
                             esc(scope)))
             h.append('<label class=scope>Grant lasts '
@@ -288,9 +289,10 @@ def dashboard(store):
 # ---------------------------------------------------------------------------
 
 class ConsoleApp:
-    def __init__(self, store, gw_keys):
+    def __init__(self, store, gw_keys, scopes=()):
         self.store = store
         self.gw_keys = gw_keys
+        self.scopes = tuple(dict.fromkeys((*friends.DEFAULT_SCOPES, "messages:send", *scopes)))
 
     def authed(self, cookies):
         """Public so server.py can gate gw.friend_decide on console auth."""
@@ -308,11 +310,11 @@ class ConsoleApp:
             res.send_html(login_page())
             return True
         if method == "GET" and path in ("/console", "/console/"):
-            res.send_html(dashboard(self.store))
+            res.send_html(dashboard(self.store, self.scopes))
             return True
         if method == "POST":
             return self._action(path, res)
-        res.send_html(dashboard(self.store))
+        res.send_html(dashboard(self.store, self.scopes))
         return True
 
     # -- auth ------------------------------------------------------------
@@ -345,13 +347,13 @@ class ConsoleApp:
         if len(parts) == 5 and parts[2] == "requests" and parts[4] == "accept":
             form = res.read_form()
             scopes = [s for s in form.get("scope", [])
-                      if s in friends.DEFAULT_SCOPES]
+                      if s in self.scopes]
             try:
                 days = max(1, min(3650, int(form.get("days", ["365"])[0])))
             except ValueError:
                 days = 365
             friends.human_decide(store, self.gw_keys, parts[3], True,
-                                 scopes=scopes or None,
+                                 scopes=scopes,
                                  expires_at=time.time() + days * 86400)
             return done()
         if len(parts) == 5 and parts[2] == "requests" and parts[4] == "decline":

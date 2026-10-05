@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nakama-interop"
+version = "0.3.0"
+description = "Signed agent connections, scoped application adapters, and vendor connectors"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["PyNaCl>=1.5,<2"]
+license = {text = "Apache-2.0"}
+authors = [{name = "Amin Khalif"}]
+classifiers = ["Programming Language :: Python :: 3", "License :: OSI Approved :: Apache Software License"]
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.12,<2"]
+apps = ["jsonschema>=4.23,<5"]
+dev = ["build>=1.2", "mcp>=1.12,<2", "jsonschema>=4.23,<5"]
+
+[project.scripts]
+nakama = "nakama.cli:main"
+nakama-gateway = "gateway.server:main"
+
+[project.urls]
+Repository = "https://github.com/AminKhalif/nakama"
+
+[tool.setuptools.packages.find]
+where = ["packages/python"]
+include = ["nakama*", "gwclient*", "gateway*"]
+exclude = ["*.tests*"]
+
+[tool.setuptools.package-data]
+nakama = ["py.typed"]
+gwclient = ["py.typed"]

@@ -1,0 +1,14 @@
+.git
+**/__pycache__
+**/*.pyc
+**/*.egg-info
+**/credentials*.json
+**/*.db
+**/*.db-*
+**/*.sqlite3
+**/*.pem
+**/*.key
+**/.env
+**/secrets*
+build
+dist

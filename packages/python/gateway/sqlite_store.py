@@ -5,6 +5,8 @@ import sqlite3
 import threading
 import time
 
+from .store import Storage
+
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS config (
     k TEXT PRIMARY KEY,
@@ -139,7 +141,7 @@ def _decode(value):
     return value
 
 
-class SQLiteStorage:
+class SQLiteStorage(Storage):
     """Thread-safe SQLite backend. One connection, one lock."""
 
     def __init__(self, path):
@@ -442,6 +444,15 @@ class SQLiteStorage:
         envs = [_decode(r["envelope"]) for r in rows]
         envs.reverse()
         return envs
+
+    def inbox_after(self, recipient_id, after, limit):
+        with self._lock:
+            rows = self._all(
+                "SELECT id,envelope,created_at FROM outbox WHERE recipient_id=?"
+                " AND id>? ORDER BY id ASC LIMIT ?", (recipient_id, after, limit))
+        for row in rows:
+            row['envelope'] = _decode(row['envelope'])
+        return rows
 
     # -- replay protection ----------------------------------------------------------------------
     def note_message(self, msg_id, from_id):

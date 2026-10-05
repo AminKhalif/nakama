@@ -244,7 +244,8 @@ def main():
     db = tempfile.mktemp(suffix=".db")
     env = dict(os.environ, GW_CONSOLE_TOKEN=CONSOLE_TOKEN)
     srv = subprocess.Popen(
-        [sys.executable, "server.py", "--port", "18301", "--db", db,
+        [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "server.py"),
+         "--port", "18301", "--db", db,
          "--host", "127.0.0.1"], env=env,
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
@@ -278,9 +279,9 @@ def run(db):
               wire.split_sig(rev["gw_sig"])))
 
     # -- registration ------------------------------------------------------
-    A = Agent("ALICE", "Alex")
+    A = Agent("AliceAgent", "Alice")
     code, res = A.register()
-    check("ALICE registers", code == 200, str(res)[:120])
+    check("AliceAgent registers", code == 200, str(res)[:120])
     A.id = res["result"]["agent_id"]
     doc = res["result"]["identity_document"]
     check("identity doc verifies offline",
@@ -288,9 +289,9 @@ def run(db):
     check("doc pubkey prefixed", doc["pubkey"] == A.pub_w)
     check("doc has deprecated_schemas", doc["deprecated_schemas"] == [])
 
-    B = Agent("Ahmed", "Ahmed")
+    B = Agent("Bob", "Bob")
     code, res = B.register()
-    check("Ahmed registers", code == 200)
+    check("Bob registers", code == 200)
     B.id = res["result"]["agent_id"]
     C = Agent("Ref", "Ops")
     code, res = C.register()
@@ -328,7 +329,7 @@ def run(db):
     check("forged register sig -> 401 bad_signature (not field error)",
           code == 401 and res["error"]["message"] == "bad_signature",
           str(res)[:120])
-    dup = Agent("ALICE", "Clone")
+    dup = Agent("AliceAgent", "Clone")
     code, res = dup.register()
     check("duplicate name rejected",
           code == 409 and res["error"]["message"] == "name_taken",

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """gwclient: embeddable Python client library for the agent-interop gateway.
 
-Stdlib only, Python 3.9+. Implements the frozen M1 specs (spec/): the
+Python 3.10+, signing via PyNaCl/libsodium. Implements the versioned specs: the
 library speaks the protocol; it never reimplements the gateway
 (enforcement lives in the gateway).
 """
@@ -20,7 +20,7 @@ from .ttt import (IllegalMove, apply_move, cell_index, check_move,
 from .auditor import countersign
 from .client import GWClient, GatewayError, ClientError
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "generate_keypair", "public_key_from_private", "sign", "verify",

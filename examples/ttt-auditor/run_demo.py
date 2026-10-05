@@ -131,7 +131,8 @@ def console_accept(base, token, request_id):
                 raise
 
     post(base + "/console/login", ("token=%s" % token).encode())
-    post(base + "/console/requests/%s/accept" % request_id, b"")
+    post(base + "/console/requests/%s/accept" % request_id,
+         b"scope=game.ttt%3Aplay&scope=game.ttt%3Aspectate")
 
 
 def render(board):
