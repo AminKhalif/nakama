@@ -52,7 +52,7 @@ def run(check, base, db, token):
           bool(console.cookie))
 
     # -- register (proof-of-possession) --------------------------------
-    A = H.new_agent(base, "AMIN")
+    A = H.new_agent(base, "ALICE")
     check("register returns agent_id + identity document",
           A.agent_id.startswith("agent_") and isinstance(A.identity, dict))
     check("identity document gw_sig verifies independently against card key",
@@ -62,7 +62,7 @@ def run(check, base, db, token):
           and A.identity["id"] == A.agent_id)
     dup = H.GWClient.new(base)
     expect_error(check, "duplicate display name -> 409 name_taken",
-                 lambda: dup.register("AMIN", owner_display_name="x",
+                 lambda: dup.register("ALICE", owner_display_name="x",
                                       vendor="muse-test"),
                  409, "name_taken")
     B = H.new_agent(base, "AHMED")
