@@ -1,86 +1,86 @@
-"""Disposable local SDK demonstration; no vendor account or external API needed."""
-import http.cookiejar
+"""Local SDK demonstrations; no vendor or calendar account required."""
+from datetime import datetime, timedelta, timezone
 import json
-import secrets
-import tempfile
-import threading
-import urllib.error
-import urllib.parse
-import urllib.request
 from pathlib import Path
-from http.server import ThreadingHTTPServer
-
-from gateway import console, identity, sqlite_store
-from gateway.server import Ctx, Handler
 from . import A2ATransport, Client, GatewayError, verify_envelope
+from .demo_gateway import DemoGateway
 
 
-class _NoRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
-        return None
+def expect_denied(call):
+    try:
+        call()
+    except GatewayError as exc:
+        if exc.code not in (403, 409):
+            raise
+        print('Access denied:', exc.data['reason'])
+    else:
+        raise RuntimeError('expected access to be denied')
 
 
 def run():
-    """Approve a connection, exchange a verified message, then revoke access."""
-    with tempfile.TemporaryDirectory(prefix='nakama-demo-') as tmp:
-        store = sqlite_store.SQLiteStorage(str(Path(tmp) / 'gateway.db'))
-        keys = identity.ensure_gateway_keys(store)
-        token = secrets.token_urlsafe(32)
-        store.set_config('console_token_hash', console._hash(token))
-        handler = type('DemoHandler', (Handler,), {
-            'ctx': Ctx(store, keys), 'console_app': console.ConsoleApp(store, keys),
-            'log_message': lambda *args: None})
-        server = ThreadingHTTPServer(('127.0.0.1', 0), handler)
-        thread = threading.Thread(target=server.serve_forever, daemon=True)
-        thread.start()
-        base = 'http://127.0.0.1:%d' % server.server_port
-        operator = urllib.request.build_opener(_NoRedirect,
-            urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+    with DemoGateway() as demo:
+        alice = Client.new(demo.base_url)
+        bob = Client.new(demo.base_url, transport=A2ATransport(demo.base_url))
+        alice.register('Alice', vendor='local-python')
+        bob.register('Bob', vendor='local-python')
+        expect_denied(lambda: alice.send_message(bob.agent_id, {'text': 'coordinate'}))
+        request = alice.friend_request(to_agent_id=bob.agent_id)
+        demo.approve_connection(request, ['messages:send'])
+        print('Local demo operator approved messages:send')
+        cursor = bob.inbox()['next_cursor']
+        sent = alice.send_message(bob.agent_id, {'type': 'coordination.request', 'subject': 'meeting'})
+        message = bob.inbox(after=cursor)['items'][0]['envelope']
+        verify_envelope(message, alice.public_key_hex)
+        print('Message queued and signature verified:', sent['message_id'])
+        print('Recipient content:', json.dumps(message['payload']['content']))
+        demo.revoke_connection(request)
+        expect_denied(lambda: alice.send_message(bob.agent_id, {}))
+    print('Demo complete. Temporary identities and database removed.')
 
-        def operator_post(path, fields):
-            body = urllib.parse.urlencode(fields, doseq=True).encode()
-            request = urllib.request.Request(base + path, data=body,
-                headers={'Content-Type': 'application/x-www-form-urlencoded'})
-            try:
-                with operator.open(request, timeout=10) as response:
-                    response.read()
-            except urllib.error.HTTPError as exc:
-                if exc.code != 303:
-                    raise
-                exc.close()
 
-        def expect_denied():
-            try:
-                alice.send_message(bob.agent_id, {'text': 'coordinate'})
-            except GatewayError as exc:
-                if exc.code != 403:
-                    raise
-                print('Access denied:', exc.data['reason'])
-            else:
-                raise RuntimeError('expected access to be denied')
-
+def run_scheduling():
+    from gateway.apps import require_peer_scope
+    from .scheduling import (CalendarBinding, MeetingService, MemoryCalendar,
+                             SchedulingClient, SQLiteProposalStore, TimeWindow)
+    from .scheduling.adapter import CalendarAdapter
+    with DemoGateway() as demo:
+        alice = Client.new(demo.base_url)
+        bob = Client.new(demo.base_url, transport=A2ATransport(demo.base_url))
+        alice.register('Alice', vendor='local-python')
+        bob.register('Bob', vendor='local-python')
+        tomorrow = datetime.now(timezone.utc).date() + timedelta(days=1)
+        start = datetime(tomorrow.year, tomorrow.month, tomorrow.day, 14, tzinfo=timezone.utc)
+        query = TimeWindow(start, start + timedelta(hours=3))
+        left = MemoryCalendar([TimeWindow(start, start + timedelta(hours=1))])
+        right = MemoryCalendar([TimeWindow(start + timedelta(minutes=90), start + timedelta(hours=2))])
+        proposals = SQLiteProposalStore(str(Path(demo.tmp.name) / 'meetings.db'))
         try:
-            alice = Client.new(base)
-            bob = Client.new(base, transport=A2ATransport(base))
-            alice.register('Alice', vendor='local-python')
-            bob.register('Bob', vendor='local-python')
-            expect_denied()
+            service = MeetingService({
+                alice.agent_id: CalendarBinding('owner-alice', left, 'alice@example.invalid', (query,), 'alice-calendar-v1'),
+                bob.agent_id: CalendarBinding('owner-bob', right, 'bob@example.invalid', (query,), 'bob-calendar-v1')},
+                proposals, lambda caller, peer, scope: require_peer_scope(demo.store, caller, peer, scope))
+            demo.add_app(CalendarAdapter(service))
+            scheduling = SchedulingClient(alice)
+            bounds = {'start': query.start.astimezone(timezone(timedelta(hours=-4))).isoformat(),
+                      'end': query.end.astimezone(timezone(timedelta(hours=1))).isoformat()}
+            expect_denied(lambda: scheduling.find_slots(bob.agent_id, **bounds))
             request = alice.friend_request(to_agent_id=bob.agent_id)
-            operator_post('/console/login', {'token': token})
-            operator_post('/console/requests/%s/accept' % request,
-                          {'scope': 'messages:send', 'days': '1'})
-            print('Local demo operator approved messages:send')
-            cursor = bob.inbox()['next_cursor']
-            sent = alice.send_message(bob.agent_id, {'type': 'coordination.request', 'subject': 'meeting'})
-            message = bob.inbox(after=cursor)['items'][0]['envelope']
-            verify_envelope(message, alice.public_key_hex)
-            print('Message queued and signature verified:', sent['message_id'])
-            print('Recipient content:', json.dumps(message['payload']['content']))
-            operator_post('/console/friendships/%s/unfriend' % request, {})
-            expect_denied()
-            print('Demo complete. Temporary identities and database removed.')
+            demo.approve_connection(request, ['app.calendar:availability', 'app.calendar:propose', 'app.calendar:book'])
+            slots = scheduling.find_slots(bob.agent_id, **bounds, duration_minutes=30)['slots']
+            print('Shared slots (UTC, no event details):', json.dumps(slots))
+            meeting = scheduling.propose(bob.agent_id, **slots[0], summary='Project meeting')
+            expect_denied(lambda: scheduling.book(bob.agent_id, meeting['id']))
+            # Trusted host API; the local demo simulates both authenticated owners.
+            service.approve(meeting['id'], 'owner-alice')
+            expect_denied(lambda: scheduling.book(bob.agent_id, meeting['id']))
+            service.approve(meeting['id'], 'owner-bob')
+            print('Both demo owners approved the exact proposal')
+            result = scheduling.book(bob.agent_id, meeting['id'])
+            if scheduling.book(bob.agent_id, meeting['id']) != result or len(left.events) != 1:
+                raise RuntimeError('booking must be idempotent')
+            print('One organizer event booked; no duplicate:', result['event_id'])
+            demo.revoke_connection(request)
+            expect_denied(lambda: scheduling.availability(bob.agent_id, **bounds))
         finally:
-            server.shutdown()
-            server.server_close()
-            thread.join()
-            store._db.close()
+            proposals.close()
+    print('Scheduling demo complete. Local calendars only; no external invitations sent.')

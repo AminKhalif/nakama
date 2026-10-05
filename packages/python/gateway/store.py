@@ -12,6 +12,8 @@ are unix floats; created stamps are ISO-8601 UTC strings.
 class Storage:
     """Persistence contract. Implementations must be thread-safe."""
 
+    def close(self): raise NotImplementedError
+
     # -- config ---------------------------------------------------------
     def get_config(self, key, default=None): raise NotImplementedError
     def set_config(self, key, value): raise NotImplementedError

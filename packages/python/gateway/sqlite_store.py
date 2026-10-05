@@ -142,6 +142,10 @@ def _decode(value):
 
 
 class SQLiteStorage(Storage):
+    def close(self):
+        with self._lock:
+            self._db.close()
+
     """Thread-safe SQLite backend. One connection, one lock."""
 
     def __init__(self, path):

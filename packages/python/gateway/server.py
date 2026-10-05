@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Agent Interop Gateway -- HTTP entry point.
+"""Nakama gateway HTTP entry point.
 
 Run: python3 server.py --port 8080 --db gw.db --host 127.0.0.1
 
-Agents talk A2A JSON-RPC 2.0 to POST /rpc; every call's params is one
+Agents send Nakama JSON-RPC 2.0 to POST /rpc; every call's params is one
 signed envelope (spec/envelope.md). Also serves the A2A Agent Card, the
 signed revocation list, spectator pages, and the human console.
 
@@ -16,7 +16,7 @@ import json
 import os
 import sys
 import traceback
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse
 
 # Allow `python3 server.py` from inside the package directory as well as
@@ -375,25 +375,27 @@ INDEX_HTML = """<!doctype html><html><head><meta charset=utf-8>
 padding:0 20px;line-height:1.5}.card{border:1px solid #ddd;border-radius:10px;
 padding:16px;margin:16px 0}code{background:#f4f4f4;padding:2px 6px;
 border-radius:4px;font-size:13px}a{color:#0b5fff}</style></head><body>
-<h1>&#129302; Agent Interop Gateway</h1>
-<p>Cross-vendor agent interop: identity, friend lists, expiring grants,
-tic-tac-toe sessions with commit/reveal fairness, and hash-chained signed
-receipts. A2A JSON-RPC 2.0 wire with per-message Ed25519 signatures.</p>
-<div class=card><h3>For agents</h3>
-<p>POST signed JSON-RPC to <code>/rpc</code> &mdash; one envelope in
-<code>params</code>. Methods: <code>gw.register</code>,
-<code>gw.friend_request</code>, <code>gw.session_open</code>,
-<code>gw.commit</code>, <code>gw.reveal</code>, <code>gw.countersign</code>,
-<code>gw.session_state</code>, <code>gw.receipts</code>
-(<code>ttt.commit</code>/<code>ttt.reveal</code> work as aliases).
-<code>gw.friend_decide</code> is human-console only. A2A clients may use
-<code>message/send</code> with the envelope as a TextPart.</p>
-<p>Agent Card: <a href="/.well-known/agent-card.json"><code>/.well-known/agent-card.json</code></a><br>
-Revocations: <a href="/.well-known/revocations.json"><code>/.well-known/revocations.json</code></a></p></div>
-<div class=card><h3>For humans</h3>
-<p><a href="/console">Operator console</a> &mdash; invite codes, friend
-requests, scopes, activity, revoke. Each session has a live spectator page
-at <code>/g/&lt;session&gt;</code>.</p></div>
+<h1>Nakama gateway</h1>
+<p>Signed agent connections, private messages, and application operations
+controlled by explicit permissions.</p>
+<div class=card><h2>SDK</h2>
+<p>Use the Python SDK or an MCP connector to request connections, exchange
+messages, and call installed applications.</p>
+<p>Scheduling adapters let agents find shared availability and propose a meeting.
+Booking requires a separate permission and approval from both owners.
+Calendar accounts and owner authentication are supplied by the host application.</p>
+<p><a href="https://github.com/AminKhalif/nakama">SDK documentation and examples</a></p>
+</div>
+<div class=card><h2>Administration</h2>
+<p>The <a href="/console">operator console</a> manages connection requests,
+permissions, expiry, and revocation. One operator administers this instance.</p>
+</div>
+<div class=card><h2>Protocol</h2>
+<p>Signed JSON-RPC operations use <code>/rpc</code>. The A2A endpoint is a
+Nakama envelope wrapper, not a complete A2A task implementation.</p>
+<p><a href="/.well-known/agent-card.json">Agent card</a> &middot;
+<a href="/.well-known/revocations.json">Revoked keys</a></p>
+</div>
 <p><small>Health: <a href="/healthz">/healthz</a></small></p>
 </body></html>"""
 
@@ -406,34 +408,26 @@ def main(applications=None):
     import argparse
     default_db = os.environ.get(
         "GW_DB", os.path.join(os.path.dirname(os.path.abspath(__file__)), "gw.db"))
-    ap = argparse.ArgumentParser(description="Agent Interop Gateway")
+    ap = argparse.ArgumentParser(description="Nakama gateway")
     ap.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8080")))
     ap.add_argument("--db", default=default_db)
     ap.add_argument("--host", default=os.environ.get("GW_HOST", "127.0.0.1"))
     args = ap.parse_args()
 
-    store = sqlite_store.SQLiteStorage(args.db)
-    gw_keys = identity.ensure_gateway_keys(store)
-    fresh_token = console_mod.ensure_console_token(store)
-    ctx = Ctx(store, gw_keys, applications)
-
-    handler = type('GatewayHandler', (Handler,), {
-        'ctx': ctx,
-        'console_app': console_mod.ConsoleApp(store, gw_keys, scopes=ctx.applications.scopes()),
-    })
-    srv = ThreadingHTTPServer((args.host, args.port), handler)
-    real_port = srv.server_address[1]
-    print("Agent Interop Gateway v%s on http://%s:%d  db=%s"
-          % (__version__, args.host, real_port, args.db), flush=True)
-    print("Gateway pubkey: ed25519:%s" % gw_keys[1], flush=True)
-    if fresh_token:
-        print("CONSOLE TOKEN (shown once, then never again): %s" % fresh_token,
-              flush=True)
-        print("Or set GW_CONSOLE_TOKEN env to choose your own.", flush=True)
-    try:
-        srv.serve_forever()
-    except KeyboardInterrupt:
-        pass
+    from gateway.runtime import Gateway
+    with Gateway(database=args.db, host=args.host, port=args.port, applications=applications) as gateway:
+        real_port = gateway.http_server.server_address[1]
+        print("Nakama gateway v%s on http://%s:%d  db=%s"
+              % (__version__, args.host, real_port, args.db), flush=True)
+        print("Gateway pubkey: ed25519:%s" % gateway.keys[1], flush=True)
+        if gateway.console_token:
+            print("CONSOLE TOKEN (shown once, then never again): %s" % gateway.console_token,
+                  flush=True)
+            print("Or set GW_CONSOLE_TOKEN env to choose your own.", flush=True)
+        try:
+            gateway.serve_forever()
+        except KeyboardInterrupt:
+            pass
 
 
 if __name__ == "__main__":

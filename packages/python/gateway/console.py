@@ -27,6 +27,9 @@ _sessions = {}  # sid -> expiry unix ts (in-memory; single process)
 
 SCOPE_WORDS = {
     "messages:send": "Send structured messages to this friend",
+    "app.calendar:availability": "See shared availability without event details",
+    "app.calendar:propose": "Propose meeting times for approval",
+    "app.calendar:book": "Book a meeting after both owners approve it",
     "game.ttt:play": "Play tic-tac-toe with this friend",
     "game.ttt:spectate": "See this friend's game results",
 }
@@ -123,8 +126,8 @@ label.scope{display:block;padding:6px 0}
 def login_page(error=""):
     return ("<!doctype html><html><head><meta charset=utf-8>"
             '<meta name=viewport content="width=device-width,initial-scale=1">'
-            "<title>Gateway console</title>" + STYLE + "</head><body><div class=wrap>"
-            "<h1>&#129302; Gateway console</h1>"
+            "<title>Nakama operator console</title>" + STYLE + "</head><body><div class=wrap>"
+            "<h1>Nakama operator console</h1>"
             "<div class=card><p>Operator sign-in. This token was printed once "
             "when the gateway first started.</p>"
             + (("<p><b>%s</b></p>" % esc(error)) if error else "") +
@@ -149,8 +152,8 @@ def dashboard(store, available_scopes=None):
 
     h = ["<!doctype html><html><head><meta charset=utf-8>",
          '<meta name=viewport content="width=device-width,initial-scale=1">',
-         "<title>Gateway console</title>", STYLE, "</head><body><div class=wrap>",
-         "<h1>&#129302; Gateway console</h1>",
+         "<title>Nakama operator console</title>", STYLE, "</head><body><div class=wrap>",
+         "<h1>Nakama operator console</h1>",
          '<p><form class=inline method=post action="/console/logout">'
          '<button type=submit>Sign out</button></form></p>']
 
@@ -163,7 +166,7 @@ def dashboard(store, available_scopes=None):
         h.append('<div class=card><div class=row><b>%s</b>'
                  '<span class=pill>%s</span></div>'
                  % (esc(a["name"]), esc(a["vendor"] or "agent")))
-        h.append('<p class=muted>Owner: %s &middot; last active %s</p>'
+        h.append('<p class=muted>Owner label (self-reported): %s &middot; last active %s</p>'
                  % (esc(a["owner_display_name"]),
                     _ago(last_active.get(a["id"]))))
         h.append("<p>Invite code: ")
@@ -187,7 +190,7 @@ def dashboard(store, available_scopes=None):
                 continue
             frm = names.get(r["a_id"], "?")
             h.append('<div class=card><b>Friend request</b> from %s<br>'
-                     '<span class=muted>Accepting opens a scope sheet.</span>'
+                     '<span class=muted>Select the permissions to grant. Leaving all unchecked grants no access.</span>'
                      '<form method=post action="/console/requests/%s/accept">'
                      % (esc(frm), r["id"]))
             for scope in (available_scopes if available_scopes is not None else friends.DEFAULT_SCOPES):
@@ -236,12 +239,12 @@ def dashboard(store, available_scopes=None):
                      '<button type=submit>Set expiry</button></form></p>' % g["id"])
         if fr["status"] == "accepted":
             h.append('<form method=post action="/console/friendships/%s/unfriend">'
-                     '<button class=danger type=submit>Unfriend &amp; freeze sessions'
+                     '<button class=danger type=submit>Revoke connection'
                      "</button></form>" % fr["id"])
         h.append("</div>")
 
     # -- sessions --
-    h.append("<h2>Sessions</h2>")
+    h.append("<h2>Example game sessions</h2>")
     live = [s for s in sess_list if s["status"] == "active"]
     if not live:
         h.append("<p class=muted>No live sessions.</p>")

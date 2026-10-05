@@ -4,7 +4,7 @@ Messaging and application adapters are independent of the example game protocol.
 Signing uses the shared PyNaCl/libsodium backend.
 """
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 __all__ = [
     "apps", "messaging", "crypto", "wire", "store", "sqlite_store", "identity",
     "friends", "sessions", "receipts", "spectator", "console", "server",

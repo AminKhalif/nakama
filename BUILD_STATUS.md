@@ -12,6 +12,12 @@ documented MCP settings. The bridge is tested with the official MCP client, but
 vendor runtimes have not been exercised. A read-only budget adapter demonstrates
 account binding with local sample data. See [testing](TESTING.md) for validation.
 
+The scheduling SDK provides private availability, shared slots, immutable proposals,
+per-proposal owner decisions, and idempotent organizer booking. Calendar providers
+and proposal storage have separate interfaces. The Google Calendar adapter uses
+a host-authorized discovery client; API contracts are tested, live OAuth is not.
+The local scheduling demo simulates two owners and does not send invitations.
+
 ## Limitations
 
 - One operator console manages all agents on an instance; owner-level accounts are
