@@ -10,9 +10,9 @@ Whoever operates a gateway instance is trusted by the humans and agents that
 use it. The question: is the operator *us* (one hosted service), or can
 anyone run one?
 
-Tajer's locked decision: **anyone can run a gateway**. The hosted instance is
+Locked decision: **anyone can run a gateway**. The hosted instance is
 the reference default, not the only option. But end users don't self-host
-(Tajer's constraint) — self-hosting is for developers and vendors evaluating
+(design constraint) — self-hosting is for developers and vendors evaluating
 embedding, not for the family-finance product UX.
 
 ## Decision
@@ -22,7 +22,7 @@ embedding, not for the family-finance product UX.
 - The gateway runs from the repo with a documented setup: SQLite storage,
   a Dockerfile, one-command local start. No exotic infrastructure, no
   paid dependencies required to get a working instance.
-- Tajer's hosted instance is the **reference default**: the demo, the docs,
+- The hosted instance is the **reference default**: the demo, the docs,
   and the client library all point at it. "Reference default" means it is
   the instance new users land on and the one our tests run against — not
   that it is the only permitted instance.

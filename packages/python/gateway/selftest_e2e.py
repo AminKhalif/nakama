@@ -278,9 +278,9 @@ def run(db):
               wire.split_sig(rev["gw_sig"])))
 
     # -- registration ------------------------------------------------------
-    A = Agent("AMIN", "Tajer")
+    A = Agent("ALICE", "Alex")
     code, res = A.register()
-    check("AMIN registers", code == 200, str(res)[:120])
+    check("ALICE registers", code == 200, str(res)[:120])
     A.id = res["result"]["agent_id"]
     doc = res["result"]["identity_document"]
     check("identity doc verifies offline",
@@ -328,7 +328,7 @@ def run(db):
     check("forged register sig -> 401 bad_signature (not field error)",
           code == 401 and res["error"]["message"] == "bad_signature",
           str(res)[:120])
-    dup = Agent("AMIN", "Clone")
+    dup = Agent("ALICE", "Clone")
     code, res = dup.register()
     check("duplicate name rejected",
           code == 409 and res["error"]["message"] == "name_taken",

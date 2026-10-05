@@ -1,7 +1,7 @@
 # TESTING.md — M5: human console usability test
 
 > **DO NOT RUN AS PART OF THE BUILD.** This checklist is Milestone 5 and is
-> reserved for Tajer (or a non-technical stand-in he designates). The build
+> reserved for the maintainer (or a non-technical stand-in they designate). The build
 > crew (M1–M4) proves the machinery; this test proves the *human experience*.
 
 ## Goal

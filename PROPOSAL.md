@@ -1,7 +1,7 @@
 # Nakama — Architecture Proposal
 
-Date: 2026-10-04. Status: APPROVED by Tajer 2026-10-04 — build in progress
-(M1–M4 via build coordinator; M5 reserved for Tajer's UX test).
+Date: 2026-10-04. Status: approved 2026-10-04 — build in progress
+(M1–M4 via build coordinator; M5 reserved for maintainer UX test).
 Author: planner worker.
 
 This proposal builds on two things: the sourced research in `docs/research.md` (confidence legend [P]/[S]/[U] there) and the proven Muse-to-Muse bridge (`~/workspace/muse-internet/bridge/`, read-only reference). Principles carried forward from the bridge unless stated otherwise: hub-and-spoke; agents AND apps are mutually untrusted; the gateway owns identity, friendship, expiring grants, sessions, sealed values, deadlines, inbox, spectator feed, and audit log; apps are signed webhook services; human approvals go through a console that agent keys cannot touch.
@@ -42,7 +42,7 @@ Alternative: keep all logic in the gateway forever. Trade-off: the gateway team 
 
 ### Iteration 4: Developer self-host path — BUILD WHEN SOMEONE ASKS
 
-A Docker Compose bundle: gateway + Postgres/SQLite + console, one command up. Same protocol, same receipts, zero federation with the hosted instance. This is for developers building apps and for vendors evaluating embedding — not for end users, per Tajer's constraint.
+A Docker Compose bundle: gateway + Postgres/SQLite + console, one command up. Same protocol, same receipts, zero federation with the hosted instance. This is for developers building apps and for vendors evaluating embedding — not for end users, per the design constraint.
 
 Why last: self-hosting solves nobody's V1 problem. It exists to remove the "but I can't run your cloud" objection from developers. Federation between self-hosted instances is explicitly out of scope until Iteration 3's receipts are stable.
 
@@ -54,7 +54,7 @@ Alternative: federate from day one (NANDA-style registry quilt). Trade-off: CRDT
 
 ## 2. Schema-evolution strategy: cheap to change, by construction
 
-Tajer's fixed requirement: one shared schema across vendors, designed so changing it is cheap. Concrete rules:
+Fixed requirement: one shared schema across vendors, designed so changing it is cheap. Concrete rules:
 
 **Versioning scheme.** Every wire message carries two version markers: the envelope version (`gw/1`) and a schema URN (`ttt/1`, `friends/1`, `receipts/1`). Format is `name/major` — no minor on the wire. Minor clarifications live in the spec changelog only. A major bump means "old readers may not understand this."
 
@@ -89,7 +89,7 @@ Token leak story (bridge lesson, kept): agent API credentials are per-agent secr
 The human never sees keys, JSON, or hashes. They get a console (web app, mobile-friendly — the relay dashboard proved this shape):
 
 1. **Add:** the human taps "Add agent," enters the other person's invite code (or scans a QR, or taps an invite link). They see an agent card: name, owner's name, vendor icon, what it can do (capabilities in plain words), and what it is asking permission for. Nothing is technical.
-2. **Approve:** friend requests arrive as cards with Accept / Decline. Accepting opens a scope sheet: "AMIN may: play games with Ahmed's agent; see game results." Toggles, not checkboxes of jargon. Every grant has an expiry (default 1 year, adjustable) — expiring grants are carried forward from the bridge.
+2. **Approve:** friend requests arrive as cards with Accept / Decline. Accepting opens a scope sheet: "ALICE may: play games with Ahmed's agent; see game results." Toggles, not checkboxes of jargon. Every grant has an expiry (default 1 year, adjustable) — expiring grants are carried forward from the bridge.
 3. **Monitor:** each friendship has an activity feed (games played, results, grants used) and a health line ("last active 2h ago"). The spectator feed for live games is one tap away.
 4. **Revoke:** "Unfriend" or "Pause" is one tap, effective immediately: sessions freeze, grants die, the agent's identity document is marked revoked for that relationship.
 
@@ -124,7 +124,7 @@ Alternative: pure (b). Trade-off: best privacy posture, but the anti-scam story 
 How it works:
 - **Register:** a developer submits an app manifest: name, webhook URL, declared scopes (OAuth-style strings like `game.ttt:play`, scoped per friendship), schema versions spoken, and a human-readable permission sheet. Submission is open; listing requires maintainer review + a signed manifest (gateway verifies the signature on every webhook call).
 - **SDK:** the client library (Iteration 2) ships an app-server helper: verify gateway webhook signatures, parse envelopes, emit receipts. The reference path: tic-tac-toe is extracted from the gateway core into App #1, exactly as the ecosystem prompt scoped it — gateway keeps identity/friendship/sessions/receipts/deadlines; the app owns board rules, win detection, and move legality.
-- **Install/permission:** a human installs an app for a specific friendship ("let AMIN and Ahmed's agent play tic-tac-toe"), approving the exact scope list. Grants are expiring and revocable per friendship, per app. An app installed for one friendship has zero access to another.
+- **Install/permission:** a human installs an app for a specific friendship ("let ALICE and Ahmed's agent play tic-tac-toe"), approving the exact scope list. Grants are expiring and revocable per friendship, per app. An app installed for one friendship has zero access to another.
 - **Runtime:** the gateway calls the app's webhook with a short-lived scoped token; the app responds with its action; the gateway validates the action against the session schema and the grant before applying it. Apps never get raw agent keys or other friendships' data.
 - **Publish/list/curate:** V1 curation is by us (review queue, signed manifests, sandbox test environment where developers play against a reference bot). Community curation (ratings, verified-developer badges) comes after there are third-party developers to curate.
 
@@ -155,7 +155,7 @@ Evaluated concretely against V1 (tic-tac-toe + auditor):
 5. The gateway emits the round receipt (moves, board, result, hash of previous receipt), signed by the gateway and countersigned by the auditor. Both players' libraries verify the chain automatically; humans see it on the spectator page.
 6. Anti-scam summary: players can't change moves after commit (binding); can't see opponent's move early (hiding); the auditor can't invent moves (never saw them pre-reveal, hash-bound after); the auditor can't lie about the result (anyone replays receipts); nobody can stall forever (deadlines forfeit); a tampered reveal is rejected, not trusted (verified, not believed). Inbound content from any agent is data until verified — the bridge rule, kept.
 
-Alternative: auditor-free, players verify each other (bridge RPS model). Trade-off: works for two players but doesn't exercise the broker role Tajer specified for V1, and N-player or app-mediated games need the broker anyway.
+Alternative: auditor-free, players verify each other (bridge RPS model). Trade-off: works for two players but doesn't exercise the broker role specified for V1, and N-player or app-mediated games need the broker anyway.
 
 ---
 
@@ -177,7 +177,7 @@ Alternative: federate from V1. Trade-off: pays NANDA-level complexity before we 
 
 ### Protocol flow
 
-Actors: players P_A (AMIN, Muse side) and P_B (friend's agent, any vendor), auditor/broker B (third agent), gateway G, humans H_A/H_B in the console. All agent messages are signed envelopes:
+Actors: players P_A (ALICE, Muse side) and P_B (friend's agent, any vendor), auditor/broker B (third agent), gateway G, humans H_A/H_B in the console. All agent messages are signed envelopes:
 
 ```json
 {"gw":"gw/1","msg_id":"msg_…","from":"agent_…","to":"agent_…",
@@ -226,7 +226,7 @@ agent-interop/
 - **M2 — Gateway core + conformance suite.** Register, identity docs, friend requests, sessions, commit/reveal with context-bound hashes, chained receipts, spectator feed. Done when: `tests/conformance` passes **≥ 40 checks**, including at minimum: tampered reveal rejected, cross-round/cross-session/cross-player commitment replay rejected, unsigned message rejected, forged signature rejected, commit deadline forfeit, reveal deadline forfeit, non-friend game creation 403, revoked key rejected, receipt chain verifies after 3 full games.
 - **M3 — Full autonomous game + auditor.** Player bots (one via the Python library) and the auditor bot play complete tic-tac-toe matches over the gateway with zero human action mid-game; humans watch the live spectator page. Done when: **3 complete matches** finish unattended, including **≥1 draw** (exercises the draw path), every round receipt verifies with the **independent verifier** (a separate script that only reads receipts + the spec), and the spectator page shows each move within 5 seconds.
 - **M4 — Red-team checks.** Explicit adversarial tests, counted: auditor attempts to alter a revealed move (must be caught by receipt replay), auditor attempts to publish commitments out of order to favor a player (must be detectable in receipts), player replays opponent's commitment as its own (rejected), player commits after deadline (rejected), revoked agent tries to play (rejected), app webhook with expired grant tries to act (rejected). Done when: **8/8 red-team checks** behave as specified, each logged with the exact receipt or error that caught it.
-- **M5 — Human console usability.** Non-technical stand-in (Tajer or designee) adds a friend agent, approves a game install with scopes, watches a match, then revokes the friendship. Done when: completed **unassisted in under 10 minutes**, and revocation demonstrably freezes a live session (session state queryable as frozen).
+- **M5 — Human console usability.** A non-technical stand-in adds a friend agent, approves a game install with scopes, watches a match, then revokes the friendship. Done when: completed **unassisted in under 10 minutes**, and revocation demonstrably freezes a live session (session state queryable as frozen).
 
 ---
 
@@ -253,7 +253,7 @@ agent-interop/
 - **Changed:** bearer-token agent auth → Ed25519 signed messages (reason: A2A v1.0.1 leaves messages unsigned [S]; our receipts need non-repudiation at the message level).
 - **New:** schema-evolution rules (§2); NANDA-AgentFacts-shaped identity docs without the JSON-LD/DID stack (§3); hybrid data flow (§4); signed-webhook app registry (§5); hash-chained receipts as the core anti-scam artifact (§6); centralized-V1-then-federate position (§7).
 
-## Appendix B: locked decisions (Tajer, 2026-10-04 — build gate)
+## Appendix B: locked decisions (2026-10-04 — build gate)
 
 1. **Wire protocol: A2A.** Google's Agent2Agent JSON-RPC messaging (v1.0.1). A2A signs
    Agent Cards but NOT messages, so per-message Ed25519 signatures are added as a
@@ -265,7 +265,7 @@ agent-interop/
    afterward. `examples/ttt-auditor/` demonstrates post-game verification from
    receipts alone.
 4. **Operator model: ANYONE CAN RUN.** The gateway must be runnable by anyone
-   (documented setup, SQLite, Dockerfile); Tajer's hosted instance is the reference
+   (documented setup, SQLite, Dockerfile); The hosted instance is the reference
    default, not the only option. Portable identities and exportable receipts are
    federation hooks from day one.
 5. **Schema evolution:** per §2 — `gw/1` envelope, additive-only within a major,
@@ -274,7 +274,7 @@ agent-interop/
    move fairness with domain separator `gw/1` — every commitment binds
    session, round, and agent:
    `sha256("gw/1|<session_id>|r<round>|<agent_id>|<cell>|<secret>")`.
-7. **Process: pstack skill adoption (2026-10-04, Tajer).** The fleet works under
+7. **Process: pstack skill adoption (2026-10-04).** The fleet works under
    Poteto's pstack practices (michael-denyer/pstack-claude, MIT): deslop +
    unslop passes, interrogate-style adversarial review with the coordinator as
    lead judge, show-me-your-work decision trails, no-comments discipline.

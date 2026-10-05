@@ -1,4 +1,4 @@
-# TRANSPORT.md — pushing this repo to GitHub (Tajer does this himself)
+# TRANSPORT.md — pushing this repo to GitHub
 
 This repo is **GitHub-ready**: the remote is created by *you*, on *your* GitHub
 account, and you push the code there yourself. Nobody on the build crew touches
